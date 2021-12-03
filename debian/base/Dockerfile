@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian:jessie
+FROM arm64v8/debian:stable
 
 ARG COMMIT_ID=unknown
 LABEL io.confluent.docker.git.id=$COMMIT_ID
@@ -69,23 +69,19 @@ RUN echo "===> Updating debian ....." \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
                 apt-transport-https \
                 curl \
-                gnupg-curl \
+                gnupg1-curl \
                 git \
                 wget \
                 netcat \
-                python=${PYTHON_VERSION} \
+                python \
+                default-jdk-headless \
+                default-jre-headless \
+                procps \
     && echo "===> Installing python packages ..."  \
     && curl -fSL "https://bootstrap.pypa.io/pip/2.7/get-pip.py" | python \
     && pip install --no-cache-dir --upgrade pip==${PYTHON_PIP_VERSION} \
     && pip install --no-cache-dir git+https://github.com/confluentinc/confluent-docker-utils@v0.0.42-python2 \
     && apt remove --purge -y git \
-    && echo "Installing Zulu OpenJDK ${ZULU_OPENJDK_VERSION}" \
-    && apt-key adv --keyserver hkps://keyserver.ubuntu.com:443 --recv-keys 0x27BC0C8CB3D81623F59BDADCB1998361219BD9C9 \
-    && curl -O https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb \
-    && dpkg --install zulu-repo_1.0.0-2_all.deb \
-    && rm -f zulu-repo_1.0.0-2_all.deb \
-    && apt-get update \
-    && apt-get -y install "zulu8-ca-jdk-headless=${ZULU_OPENJDK_VERSION}" "zulu8-ca-jre-headless=${ZULU_OPENJDK_VERSION}" \
     && echo "===> Installing Kerberos Patch ..." \
     && DEBIAN_FRONTEND=noninteractive apt-get -y install krb5-user \
     && rm -rf /var/lib/apt/lists/* \

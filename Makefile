@@ -33,17 +33,17 @@ CONFLUENT_RPM_LABEL ?=
 VERSION ?= ${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL}-${BUILD_NUMBER}
 
 clean-containers:
-	for container in `docker ps -aq -f label=io.confluent.docker.testing=true` ; do \
+	for container in `podman ps -aq -f label=io.confluent.docker.testing=true` ; do \
         echo "\nRemoving container $${container} \n========================================== " ; \
-				docker rm -f $${container} || exit 1 ; \
+				podman rm -f $${container} || exit 1 ; \
   done
 	# Remove dangling volumes
-	docker volume ls -q -f dangling=true | xargs docker volume rm || true;
+	podman volume ls -q -f dangling=true | xargs podman volume rm || true;
 
 clean-images:
-	for image in `docker images -q -f label=io.confluent.docker.build.number | uniq` ; do \
+	for image in `podman images -q -f label=io.confluent.docker.build.number | uniq` ; do \
         echo "Removing image $${image} \n==========================================\n " ; \
-				docker rmi -f $${image} || exit 1 ; \
+				podman rmi -f $${image} || exit 1 ; \
   done
 
 debian/base/include/etc/confluent/docker/docker-utils.jar:
@@ -72,37 +72,37 @@ build-debian: debian/base/include/etc/confluent/docker/docker-utils.jar
 build-test-images:
 	for component in `ls tests/images` ; do \
 		echo "\n\nBuilding $${component} \n==========================================\n " ; \
-		docker build -t ${REPOSITORY}/cp-$${component}:latest tests/images/$${component} || exit 1 ; \
-		docker tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:latest || exit 1 ; \
-		docker tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1 ; \
-		docker tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:${VERSION} || exit 1 ; \
-		docker tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:${COMMIT_ID} || exit 1 ; \
+		podman build -t ${REPOSITORY}/cp-$${component}:latest tests/images/$${component} || exit 1 ; \
+		podman tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:latest || exit 1 ; \
+		podman tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1 ; \
+		podman tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:${VERSION} || exit 1 ; \
+		podman tag ${REPOSITORY}/cp-$${component}:latest ${REPOSITORY}/cp-$${component}:${COMMIT_ID} || exit 1 ; \
 	done
 
 tag-remote:
 ifndef DOCKER_REMOTE_REPOSITORY
 	$(error DOCKER_REMOTE_REPOSITORY must be defined.)
 endif
-	for image in `docker images -f label=io.confluent.docker.build.number -f "dangling=false" --format "{{.Repository}}:{{.Tag}}"` ; do \
+	for image in `podman images -f label=io.confluent.docker.build.number -f "dangling=false" --format "{{.Repository}}:{{.Tag}}"` ; do \
         echo "\n Tagging $${image} as ${DOCKER_REMOTE_REPOSITORY}/$${image#*/}"; \
-        docker tag $${image} ${DOCKER_REMOTE_REPOSITORY}/$${image#*/}; \
+        podman tag $${image} ${DOCKER_REMOTE_REPOSITORY}/$${image#*/}; \
   done
 
 push-private: clean build-debian build-test-images tag-remote
 ifndef DOCKER_REMOTE_REPOSITORY
 	$(error DOCKER_REMOTE_REPOSITORY must be defined.)
 endif
-	for image in `docker images -f label=io.confluent.docker.build.number -f "dangling=false" --format "{{.Repository}}:{{.Tag}}" | grep $$DOCKER_REMOTE_REPOSITORY` ; do \
+	for image in `podman images -f label=io.confluent.docker.build.number -f "dangling=false" --format "{{.Repository}}:{{.Tag}}" | grep $$DOCKER_REMOTE_REPOSITORY` ; do \
         echo "\n Pushing $${image}"; \
-        docker push $${image}; \
+        podman push $${image}; \
   done
 
 push-public: clean build-debian
 	for component in ${COMPONENTS} ; do \
 		echo "\n Pushing cp-$${component}  \n==========================================\n "; \
-		docker push ${REPOSITORY}/cp-$${component}:latest || exit 1; \
-		docker push ${REPOSITORY}/cp-$${component}:${VERSION} || exit 1; \
-		docker push ${REPOSITORY}/cp-$${component}:${CONFLUENT_VERSION} || exit 1; \
+		podman push ${REPOSITORY}/cp-$${component}:latest || exit 1; \
+		podman push ${REPOSITORY}/cp-$${component}:${VERSION} || exit 1; \
+		podman push ${REPOSITORY}/cp-$${component}:${CONFLUENT_VERSION} || exit 1; \
   done
 
 clean: clean-containers clean-images

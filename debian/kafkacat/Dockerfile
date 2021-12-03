@@ -1,4 +1,4 @@
-FROM debian:stretch-slim
+FROM arm64v8/debian:stable
 
 WORKDIR /build
 
@@ -17,7 +17,7 @@ RUN echo "Building kafkacat ....." \
 
 ###
 
-FROM debian:stretch-slim
+FROM arm64v8/debian:stable
 
 ARG COMMIT_ID=unknown
 LABEL io.confluent.docker.git.id=$COMMIT_ID
