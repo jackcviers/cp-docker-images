@@ -19,6 +19,7 @@ echo "COMMIT_ID=${COMMIT_ID}"
 echo "BUILD_NUMBER=${BUILD_NUMBER}"
 echo "REPOSITORY=${REPOSITORY}"
 echo "RELEASE_QUALITY=${RELEASE_QUALITY}"
+echo "DOCKER=${DOCKER}"
 
 for component in ${COMPONENTS} ; do
     echo "\n\nBuilding ${component} \n==========================================\n "
@@ -43,12 +44,12 @@ for component in ${COMPONENTS} ; do
         fi
 
         if [ -a "${DOCKER_FILE}" ]; then
-            docker build --build-arg KAFKA_VERSION=${KAFKA_VERSION} --build-arg CONFLUENT_PLATFORM_LABEL=${CONFLUENT_PLATFORM_LABEL} --build-arg CONFLUENT_MAJOR_VERSION=${CONFLUENT_MAJOR_VERSION} --build-arg CONFLUENT_MINOR_VERSION=${CONFLUENT_MINOR_VERSION} --build-arg CONFLUENT_PATCH_VERSION=${CONFLUENT_PATCH_VERSION} --build-arg COMMIT_ID=${COMMIT_ID} --build-arg BUILD_NUMBER=${BUILD_NUMBER} ${BUILD_ARGS} -t ${REPOSITORY}/cp-${COMPONENT_NAME}:latest -f ${DOCKER_FILE} debian/${component} || exit 1
+            ${DOCKER} build --build-arg KAFKA_VERSION=${KAFKA_VERSION} --build-arg CONFLUENT_PLATFORM_LABEL=${CONFLUENT_PLATFORM_LABEL} --build-arg CONFLUENT_MAJOR_VERSION=${CONFLUENT_MAJOR_VERSION} --build-arg CONFLUENT_MINOR_VERSION=${CONFLUENT_MINOR_VERSION} --build-arg CONFLUENT_PATCH_VERSION=${CONFLUENT_PATCH_VERSION} --build-arg COMMIT_ID=${COMMIT_ID} --build-arg BUILD_NUMBER=${BUILD_NUMBER} ${BUILD_ARGS} -t ${REPOSITORY}/cp-${COMPONENT_NAME}:latest -f ${DOCKER_FILE} debian/${component} || exit 1
 
-            docker tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:latest  || exit 1
-            docker tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1
-            docker tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${VERSION} || exit 1
-            docker tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${COMMIT_ID} || exit 1
+            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:latest  || exit 1
+            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1
+            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${VERSION} || exit 1
+            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${COMMIT_ID} || exit 1
         fi;
     done
 done
