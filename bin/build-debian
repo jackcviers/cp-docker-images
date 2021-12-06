@@ -20,6 +20,7 @@ echo "BUILD_NUMBER=${BUILD_NUMBER}"
 echo "REPOSITORY=${REPOSITORY}"
 echo "RELEASE_QUALITY=${RELEASE_QUALITY}"
 echo "DOCKER=${DOCKER}"
+echo "BUILD_M1=${BUILD_M1}"
 
 for component in ${COMPONENTS} ; do
     echo "\n\nBuilding ${component} \n==========================================\n "
@@ -31,25 +32,64 @@ for component in ${COMPONENTS} ; do
         BUILD_ARGS=""
     fi
 
-    for type in "" rpm; do
-        DOCKER_FILE="debian/${component}/Dockerfile"
+    if [ "${BUILD_M1}" = true ]; then
+	DOCKER_FILE="debian/${component}/Dockerfile.arm64v8"
         COMPONENT_NAME=${component}
+	CONFLUENT_PLATFORM_LABEL=${CONFLUENT_DEB_LABEL}
+	${DOCKER} build \
+		  --build-arg ARCH=arm64v8 \
+		  --build-arg KAFKA_VERSION=${KAFKA_VERSION} \
+		  --build-arg CONFLUENT_PLATFORM_LABEL=${CONFLUENT_PLATFORM_LABEL} \
+		  --build-arg CONFLUENT_MAJOR_VERSION=${CONFLUENT_MAJOR_VERSION} \
+		  --build-arg CONFLUENT_MINOR_VERSION=${CONFLUENT_MINOR_VERSION} \
+		  --build-arg CONFLUENT_PATCH_VERSION=${CONFLUENT_PATCH_VERSION} \
+		  --build-arg COMMIT_ID=${COMMIT_ID} \
+		  --build-arg BUILD_NUMBER=${BUILD_NUMBER} \
+		  ${BUILD_ARGS} \
+		  -t ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8 \
+		  -f ${DOCKER_FILE} \
+		  debian/${component} || \
+	    exit 1
+	
+	${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8 ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8  || exit 1
+	${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8 ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1
+	${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8 ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8${VERSION} || exit 1
+	${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8 ${REPOSITORY}/cp-${COMPONENT_NAME}:arm64v8${COMMIT_ID} || exit 1
+    else
+	for type in "" rpm; do
+            DOCKER_FILE="debian/${component}/Dockerfile"
+            COMPONENT_NAME=${component}
+	    EXTRA_BUILD_ARG=""
 
-        if [ "${type}" = "rpm" ]; then
-            COMPONENT_NAME="rpm-${component}"
-            DOCKER_FILE="${DOCKER_FILE}.rpm"
-            CONFLUENT_PLATFORM_LABEL=${CONFLUENT_RPM_LABEL}
-        else
-            CONFLUENT_PLATFORM_LABEL=${CONFLUENT_DEB_LABEL}
-        fi
+            if [ "${type}" = "rpm" ]; then
+		COMPONENT_NAME="rpm-${component}"
+		DOCKER_FILE="${DOCKER_FILE}.rpm"
+		CONFLUENT_PLATFORM_LABEL=${CONFLUENT_RPM_LABEL}
+            else 
+		CONFLUENT_PLATFORM_LABEL=${CONFLUENT_DEB_LABEL}
+            fi
 
-        if [ -a "${DOCKER_FILE}" ]; then
-            ${DOCKER} build --build-arg KAFKA_VERSION=${KAFKA_VERSION} --build-arg CONFLUENT_PLATFORM_LABEL=${CONFLUENT_PLATFORM_LABEL} --build-arg CONFLUENT_MAJOR_VERSION=${CONFLUENT_MAJOR_VERSION} --build-arg CONFLUENT_MINOR_VERSION=${CONFLUENT_MINOR_VERSION} --build-arg CONFLUENT_PATCH_VERSION=${CONFLUENT_PATCH_VERSION} --build-arg COMMIT_ID=${COMMIT_ID} --build-arg BUILD_NUMBER=${BUILD_NUMBER} ${BUILD_ARGS} -t ${REPOSITORY}/cp-${COMPONENT_NAME}:latest -f ${DOCKER_FILE} debian/${component} || exit 1
+	    # --platform=linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v8 \
+	    if [ -a "${DOCKER_FILE}" ]; then
+		${DOCKER} build \
+			  --build-arg KAFKA_VERSION=${KAFKA_VERSION} \
+			  --build-arg CONFLUENT_PLATFORM_LABEL=${CONFLUENT_PLATFORM_LABEL} \
+			  --build-arg CONFLUENT_MAJOR_VERSION=${CONFLUENT_MAJOR_VERSION} \
+			  --build-arg CONFLUENT_MINOR_VERSION=${CONFLUENT_MINOR_VERSION} \
+			  --build-arg CONFLUENT_PATCH_VERSION=${CONFLUENT_PATCH_VERSION} \
+			  --build-arg COMMIT_ID=${COMMIT_ID} \
+			  --build-arg BUILD_NUMBER=${BUILD_NUMBER} \
+			  ${BUILD_ARGS} \
+			  -t ${REPOSITORY}/cp-${COMPONENT_NAME}:latest \
+			  -f ${DOCKER_FILE} \
+			  debian/${component} || \
+		    exit 1
 
-            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:latest  || exit 1
-            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1
-            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${VERSION} || exit 1
-            ${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${COMMIT_ID} || exit 1
-        fi;
-    done
+		${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:latest  || exit 1
+		${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${CONFLUENT_VERSION}${CONFLUENT_MVN_LABEL} || exit 1
+		${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${VERSION} || exit 1
+		${DOCKER} tag ${REPOSITORY}/cp-${COMPONENT_NAME}:latest ${REPOSITORY}/cp-${COMPONENT_NAME}:${COMMIT_ID} || exit 1
+	    fi;
+	done
+    fi
 done
